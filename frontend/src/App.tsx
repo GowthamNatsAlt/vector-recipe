@@ -1,0 +1,168 @@
+import { useState } from "react";
+import { Search, Hash, Utensils, List } from "lucide-react";
+
+interface Recipe {
+    title: string;
+    ingredients: string[];
+    directions: string[];
+    NER: string[]; // Named Entity Recognition tags
+    score: number;
+}
+
+export default function SearchApp() {
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<Recipe[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [numSearches, setNumSearches] = useState(0);
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!query.trim()) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `http://localhost:8000/search?query=${encodeURIComponent(query)}`,
+            );
+            if (!response.ok) throw new Error("Search failed");
+            const data = (await response.json()) as Recipe[];
+            const filteredResults = data.filter((recipe) => recipe.score > 0);
+            setResults(filteredResults);
+            setNumSearches((prev) => prev + 1);
+        } catch (err) {
+            console.error("Search failed:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-orange-500/30 font-sans">
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-orange-500/10 blur-[120px] pointer-events-none" />
+
+            <main className="relative max-w-4xl mx-auto pt-20 px-6">
+                <header className="mb-12 text-center">
+                    <h1 className="text-5xl font-extrabold tracking-tighter mb-3 italic bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">
+                        VectorRecipe
+                    </h1>
+                    <p className="text-zinc-500 text-sm font-medium tracking-wide uppercase">
+                        AI-Driven Semantic Recipe Discovery
+                    </p>
+                </header>
+
+                <form onSubmit={handleSearch} className="relative group mb-16">
+                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                        <Search
+                            className={`w-5 h-5 transition-colors ${loading ? "animate-pulse text-orange-500" : "text-zinc-500"}`}
+                        />
+                    </div>
+                    <input
+                        type="text"
+                        className="w-full bg-zinc-900/40 border border-zinc-800 rounded-2xl py-5 pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition-all placeholder:text-zinc-600 text-lg shadow-2xl backdrop-blur-md"
+                        placeholder="What's in your fridge? (e.g., 'chicken and mushrooms')"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                    />
+                </form>
+
+                <div className="space-y-8 pb-24">
+                    {results.map((recipe, index) => (
+                        <article
+                            key={index}
+                            className="bg-zinc-900/30 border border-zinc-800/50 rounded-3xl overflow-hidden hover:border-orange-500/30 transition-all duration-500 group"
+                        >
+                            {/* Card Header */}
+                            <div className="p-6 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
+                                <h3 className="text-2xl font-bold group-hover:text-orange-400 transition-colors">
+                                    {recipe.title}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono font-bold text-orange-500 bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/20 uppercase tracking-widest">
+                                        <Hash className="w-3 h-3 inline mr-1" />
+                                        {Math.round(recipe.score * 100)}% Match
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Card Content Grid */}
+                            <div className="grid md:grid-cols-5 gap-0">
+                                {/* Ingredients Side */}
+                                <div className="md:col-span-2 p-6 bg-black/20 border-r border-zinc-800/50">
+                                    <div className="flex items-center gap-2 mb-4 text-zinc-400 font-semibold text-xs uppercase tracking-wider">
+                                        <Utensils className="w-4 h-4 text-orange-500" />
+                                        Ingredients
+                                    </div>
+                                    <ul className="space-y-2">
+                                        {recipe.ingredients.map((ing, i) => (
+                                            <li
+                                                key={i}
+                                                className="text-sm text-zinc-400 flex gap-2"
+                                            >
+                                                <span className="text-orange-500/50">
+                                                    •
+                                                </span>
+                                                {ing}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Directions Side */}
+                                <div className="md:col-span-3 p-6">
+                                    <div className="flex items-center gap-2 mb-4 text-zinc-400 font-semibold text-xs uppercase tracking-wider">
+                                        <List className="w-4 h-4 text-orange-500" />
+                                        Directions
+                                    </div>
+                                    <div className="space-y-4">
+                                        {recipe.directions.map((step, i) => (
+                                            <div key={i} className="flex gap-4">
+                                                <span className="text-xs font-mono text-zinc-600 mt-1">
+                                                    {(i + 1)
+                                                        .toString()
+                                                        .padStart(2, "0")}
+                                                </span>
+                                                <p className="text-sm text-zinc-300 leading-relaxed">
+                                                    {step}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card Footer - Tags (NER) */}
+                            <div className="p-4 bg-zinc-900/40 border-t border-zinc-800/50 flex flex-wrap gap-2">
+                                {recipe.NER.map((tag, i) => (
+                                    <span
+                                        key={i}
+                                        className="text-[10px] px-2 py-1 bg-zinc-800 text-zinc-500 rounded-md hover:text-zinc-300 hover:bg-zinc-700 transition-colors cursor-default"
+                                    >
+                                        #{tag.toLowerCase().replace(/\s+/g, "")}
+                                    </span>
+                                ))}
+                            </div>
+                        </article>
+                    ))}
+
+                    {/* Empty State */}
+                    {results.length === 0 && !loading && (
+                        <div className="text-center py-32 border border-dashed border-zinc-800 rounded-[2.5rem] bg-zinc-900/10">
+                            <div className="inline-flex p-4 rounded-full bg-zinc-900 mb-4 text-zinc-700">
+                                <Search className="w-8 h-8" />
+                            </div>
+                            <p className="text-zinc-500 font-medium">
+                                {numSearches === 0
+                                    ? "Ready to search over 5,000 recipes"
+                                    : "No exact matches found"}
+                            </p>
+                            <p className="text-zinc-700 text-xs mt-2">
+                                Try ingredients like "Parmesan", "Basil", or
+                                "Slow Cooker"
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </main>
+        </div>
+    );
+}
