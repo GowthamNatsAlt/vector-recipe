@@ -20,8 +20,8 @@ app.add_middleware(
 
 # Load data globally
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, "../../data/5000_data_with_tf_idf.csv")
-IDF_PATH = os.path.join(BASE_DIR, "../../data/inverse_document_frequency.pkl")
+DATA_PATH = os.getenv("DATA_PATH", os.path.join(BASE_DIR, "../../data/5000_data_with_tf_idf.csv"))
+IDF_PATH = os.getenv("IDF_PATH", os.path.join(BASE_DIR, "../../data/inverse_document_frequency.pkl"))
 
 df = pd.read_csv(DATA_PATH)
 with open(IDF_PATH, "rb") as f:

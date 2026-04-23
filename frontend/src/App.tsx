@@ -21,8 +21,10 @@ export default function SearchApp() {
 
         setLoading(true);
         try {
+            const API_URL =
+                import.meta.env.VITE_API_URL || "http://localhost:8000";
             const response = await fetch(
-                `http://localhost:8000/search?query=${encodeURIComponent(query)}`,
+                `${API_URL}/search?query=${encodeURIComponent(query)}`,
             );
             if (!response.ok) throw new Error("Search failed");
             const data = (await response.json()) as Recipe[];
