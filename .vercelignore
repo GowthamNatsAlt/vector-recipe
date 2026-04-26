@@ -1,8 +1,0 @@
-# .vercelignore
-backend/.venv/
-**/__pycache__/
-dataset/
-processing/
-.vscode/
-*.ipynb
-*.md
