@@ -22,18 +22,14 @@ _cached_idf = None
 
 def get_data():
     global _cached_data, _cached_idf
-
-    # 1. Get the directory where main.py is located
-    current_dir = os.path.dirname(os.path.abspath(__file__)) 
     
-    # 2. Go up to the 'backend' folder (assuming your structure is backend/app/main.py)
-    backend_dir = os.path.dirname(current_dir)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(os.path.dirname(base_dir), "data")
     
-    # 3. Construct paths to the data folder
-    csv_path = os.path.join(backend_dir, "data", "5000_data_with_tf_idf.csv")
-    pkl_path = os.path.join(backend_dir, "data", "inverse_document_frequency.pkl")
+    csv_path = os.path.join(data_dir, "5000_data_with_tf_idf.csv")
+    pkl_path = os.path.join(data_dir, "inverse_document_frequency.pkl")
     
-    # 4. Check if files exist and load them
+    # Check if files exist and load them
     if _cached_data is None:
         if not os.path.exists(csv_path):
             raise FileNotFoundError(f"CSV not found at {csv_path}")
