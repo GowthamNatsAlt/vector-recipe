@@ -1,0 +1,10 @@
+# .vercelignore
+backend/.venv/
+**/__pycache__/
+dataset/
+processing/
+.vscode/
+frontend/node_modules/
+frontend/src/
+*.ipynb
+*.md
