@@ -16,8 +16,7 @@ interface Recipe {
     score: number;
 }
 
-// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_BASE_URL = "https://mini-search-engine-backend-xcc5.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function SearchApp() {
     const [query, setQuery] = useState("");
@@ -198,6 +197,23 @@ export default function SearchApp() {
                             </div>
                         </article>
                     ))}
+
+                    {loading && (
+                        <div className="space-y-8 animate-pulse">
+                            {[...Array(3)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="bg-zinc-900/20 border border-zinc-800/50 rounded-3xl p-8 h-64 flex flex-col gap-4"
+                                >
+                                    <div className="h-8 w-1/3 bg-zinc-800 rounded-lg" />
+                                    <div className="flex gap-4">
+                                        <div className="h-32 w-1/3 bg-zinc-800/50 rounded-xl" />
+                                        <div className="h-32 w-2/3 bg-zinc-800/50 rounded-xl" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {results.length === 0 && !loading && (
                         <div className="text-center py-32 border border-dashed border-zinc-800 rounded-[2.5rem] bg-zinc-900/10">
