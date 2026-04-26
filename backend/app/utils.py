@@ -66,22 +66,16 @@ def get_similarity(query_vec: dict, recipe_vec: dict) -> float:
 
 def run_search(query_str: str, data_list: list, idf_matrix: dict, k: int = 5):
     query_vec = process_query(query_str, idf_matrix)
+    if not query_vec: return []
     
     scored_results = []
     for row in data_list:
-        # Convert string representation of dict to actual dict
-        tfidf_vec = ast.literal_eval(row['tfidf']) if isinstance(row['tfidf'], str) else row['tfidf']
-        
-        score = get_similarity(query_vec, tfidf_vec)
+        score = get_similarity(query_vec, row['tfidf'])
         
         if score > 0:
-            row['score'] = score
-            # Convert other string-lists to actual lists for the frontend
-            for col in ['ingredients', 'directions', 'NER']:
-                if isinstance(row.get(col), str):
-                    row[col] = ast.literal_eval(row[col])
-            scored_results.append(row)
+            result_item = row.copy()
+            result_item['score'] = score
+            scored_results.append(result_item)
 
-    # Sort by score descending
     scored_results.sort(key=lambda x: x['score'], reverse=True)
     return scored_results[:k]

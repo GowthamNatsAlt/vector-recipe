@@ -1,8 +1,9 @@
+import ast
 import csv
-import pickle
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import pickle
+import os
 from .utils import run_search
 
 app = FastAPI()
@@ -21,11 +22,20 @@ _cached_idf = None
 
 def get_data():
     global _cached_data, _cached_idf
-    root = os.getcwd()
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
     if _cached_data is None:
         path = os.path.join(root, "data", "5000_data_with_tf_idf.csv")
         with open(path, mode='r', encoding='utf-8') as f:
-            _cached_data = list(csv.DictReader(f))
+            raw_data = list(csv.DictReader(f))
+            for row in raw_data:
+                for col in ['ingredients', 'directions', 'NER', 'tfidf']:
+                    if isinstance(row.get(col), str):
+                        try:
+                            row[col] = ast.literal_eval(row[col])
+                        except:
+                            row[col] = [] if col != 'tfidf' else {}
+            _cached_data = raw_data
     
     if _cached_idf is None:
         path = os.path.join(root, "data", "inverse_document_frequency.pkl")
@@ -33,15 +43,6 @@ def get_data():
             _cached_idf = pickle.load(f)
             
     return _cached_data, _cached_idf
-
-def get_data():
-    global _cached_df, _cached_idf
-    if _cached_df is None:
-        _cached_df = pd.read_csv(DATA_PATH)
-    if _cached_idf is None:
-        with open(IDF_PATH, "rb") as f:
-            _cached_idf = pickle.load(f)
-    return _cached_df, _cached_idf
 
 @app.get("/api/search")
 def search(query: str, k: int = 5):

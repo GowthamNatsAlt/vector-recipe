@@ -1,33 +1,72 @@
-import { useState } from "react";
-import { Search, Hash, Utensils, List } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+    Search,
+    Hash,
+    Utensils,
+    List,
+    AlertCircle,
+    Loader2,
+} from "lucide-react";
 
 interface Recipe {
     title: string;
     ingredients: string[];
     directions: string[];
-    NER: string[]; // Named Entity Recognition tags
+    NER: string[];
     score: number;
 }
+
+// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = "https://mini-search-engine-backend-xcc5.onrender.com";
 
 export default function SearchApp() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showColdStartWarning, setShowColdStartWarning] = useState(false);
     const [numSearches, setNumSearches] = useState(0);
+
+    useEffect(() => {
+        let timer: number;
+        if (loading) {
+            timer = window.setTimeout(() => {
+                setShowColdStartWarning(true);
+            }, 2000);
+        } else {
+            setShowColdStartWarning(false);
+        }
+        return () => clearTimeout(timer);
+    }, [loading]);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!query.trim()) return;
 
         setLoading(true);
+        setResults([]);
         try {
             const response = await fetch(
-                `/api/search?query=${encodeURIComponent(query)}`,
+                `${API_BASE_URL}/api/search?query=${encodeURIComponent(query)}`,
             );
+
             if (!response.ok) throw new Error("Search failed");
-            const data = (await response.json()) as Recipe[];
-            const filteredResults = data.filter((recipe) => recipe.score > 0);
-            setResults(filteredResults);
+
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                const filteredResults = data.filter(
+                    (recipe: Recipe) => recipe.score > 0,
+                );
+                setResults(filteredResults);
+            } else {
+                console.error("Received non-array response:", data);
+                if (data.results && Array.isArray(data.results)) {
+                    setResults(data.results.filter((r: Recipe) => r.score > 0));
+                } else {
+                    setResults([]);
+                }
+            }
+
             setNumSearches((prev) => prev + 1);
         } catch (err) {
             console.error("Search failed:", err);
@@ -50,20 +89,41 @@ export default function SearchApp() {
                     </p>
                 </header>
 
-                <form onSubmit={handleSearch} className="relative group mb-16">
+                <form onSubmit={handleSearch} className="relative group mb-8">
                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                        <Search
-                            className={`w-5 h-5 transition-colors ${loading ? "animate-pulse text-orange-500" : "text-zinc-500"}`}
-                        />
+                        {loading ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                        ) : (
+                            <Search className="w-5 h-5 text-zinc-500 group-focus-within:text-orange-500 transition-colors" />
+                        )}
                     </div>
                     <input
                         type="text"
                         className="w-full bg-zinc-900/40 border border-zinc-800 rounded-2xl py-5 pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500/40 transition-all placeholder:text-zinc-600 text-lg shadow-2xl backdrop-blur-md"
-                        placeholder="What's in your fridge? (e.g., 'chicken and mushrooms')"
+                        placeholder="Search recipes by ingredients or keywords..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
                 </form>
+
+                {showColdStartWarning && (
+                    <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-start gap-4 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 backdrop-blur-sm">
+                            <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-bold text-orange-400">
+                                    Waking up the Engine
+                                </h4>
+                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                    Our free-tier instance is currently spinning
+                                    up. This first search may take up to 30
+                                    seconds to process the vector data. Thanks
+                                    for your patience!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-8 pb-24">
                     {results.map((recipe, index) => (
@@ -71,7 +131,6 @@ export default function SearchApp() {
                             key={index}
                             className="bg-zinc-900/30 border border-zinc-800/50 rounded-3xl overflow-hidden hover:border-orange-500/30 transition-all duration-500 group"
                         >
-                            {/* Card Header */}
                             <div className="p-6 border-b border-zinc-800/50 flex justify-between items-center bg-zinc-900/20">
                                 <h3 className="text-2xl font-bold group-hover:text-orange-400 transition-colors">
                                     {recipe.title}
@@ -84,9 +143,7 @@ export default function SearchApp() {
                                 </div>
                             </div>
 
-                            {/* Card Content Grid */}
                             <div className="grid md:grid-cols-5 gap-0">
-                                {/* Ingredients Side */}
                                 <div className="md:col-span-2 p-6 bg-black/20 border-r border-zinc-800/50">
                                     <div className="flex items-center gap-2 mb-4 text-zinc-400 font-semibold text-xs uppercase tracking-wider">
                                         <Utensils className="w-4 h-4 text-orange-500" />
@@ -107,7 +164,6 @@ export default function SearchApp() {
                                     </ul>
                                 </div>
 
-                                {/* Directions Side */}
                                 <div className="md:col-span-3 p-6">
                                     <div className="flex items-center gap-2 mb-4 text-zinc-400 font-semibold text-xs uppercase tracking-wider">
                                         <List className="w-4 h-4 text-orange-500" />
@@ -121,7 +177,7 @@ export default function SearchApp() {
                                                         .toString()
                                                         .padStart(2, "0")}
                                                 </span>
-                                                <p className="text-sm text-zinc-300 leading-relaxed">
+                                                <p className="text-sm text-zinc-300 leading-relaxed italic">
                                                     {step}
                                                 </p>
                                             </div>
@@ -130,7 +186,6 @@ export default function SearchApp() {
                                 </div>
                             </div>
 
-                            {/* Card Footer - Tags (NER) */}
                             <div className="p-4 bg-zinc-900/40 border-t border-zinc-800/50 flex flex-wrap gap-2">
                                 {recipe.NER.map((tag, i) => (
                                     <span
@@ -144,7 +199,6 @@ export default function SearchApp() {
                         </article>
                     ))}
 
-                    {/* Empty State */}
                     {results.length === 0 && !loading && (
                         <div className="text-center py-32 border border-dashed border-zinc-800 rounded-[2.5rem] bg-zinc-900/10">
                             <div className="inline-flex p-4 rounded-full bg-zinc-900 mb-4 text-zinc-700">
