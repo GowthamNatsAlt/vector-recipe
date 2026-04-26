@@ -22,11 +22,24 @@ _cached_idf = None
 
 def get_data():
     global _cached_data, _cached_idf
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # 1. Get the directory where main.py is located
+    current_dir = os.path.dirname(os.path.abspath(__file__)) 
     
+    # 2. Go up to the 'backend' folder (assuming your structure is backend/app/main.py)
+    backend_dir = os.path.dirname(current_dir)
+    
+    # 3. Construct paths to the data folder
+    csv_path = os.path.join(backend_dir, "data", "5000_data_with_tf_idf.csv")
+    pkl_path = os.path.join(backend_dir, "data", "inverse_document_frequency.pkl")
+    
+    # 4. Check if files exist and load them
     if _cached_data is None:
-        path = os.path.join(root, "data", "5000_data_with_tf_idf.csv")
-        with open(path, mode='r', encoding='utf-8') as f:
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV not found at {csv_path}")
+            
+        with open(csv_path, mode='r', encoding='utf-8') as f:
+            # Pre-parsing here as discussed for performance
             raw_data = list(csv.DictReader(f))
             for row in raw_data:
                 for col in ['ingredients', 'directions', 'NER', 'tfidf']:
@@ -37,9 +50,12 @@ def get_data():
                             row[col] = [] if col != 'tfidf' else {}
             _cached_data = raw_data
     
+    # 5. Check if pickle exists and load it
     if _cached_idf is None:
-        path = os.path.join(root, "data", "inverse_document_frequency.pkl")
-        with open(path, "rb") as f:
+        if not os.path.exists(pkl_path):
+            raise FileNotFoundError(f"Pickle not found at {pkl_path}")
+            
+        with open(pkl_path, "rb") as f:
             _cached_idf = pickle.load(f)
             
     return _cached_data, _cached_idf
