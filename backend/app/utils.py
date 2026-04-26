@@ -24,8 +24,8 @@ def clean_data(text: str) -> str:
     text = re.sub(r'[^a-z\s]', '', text)
     return re.sub(r'\s+', ' ', text).strip()
 
-stop_words = set(stopwords.words('english'))
 def remove_stopwords(text: str) -> str:
+    stop_words = set(stopwords.words('english'))
     return ' '.join([word for word in text.split() if word not in stop_words])
 
 def calculate_term_frequency(text: str) -> dict:
@@ -93,8 +93,3 @@ def run_search(query_str: str, data_df: pd.DataFrame, idf_matrix: dict, k: int =
         'NER',
         'score'
     ]].to_dict(orient='records')
-
-def download_nltk_dependencies():
-    import nltk
-    for dep in ['stopwords', 'punkt']:
-        nltk.download(dep, quiet=True)

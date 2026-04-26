@@ -1,12 +1,13 @@
-# backend/src/main.py
+import nltk
+nltk.download('stopwords', quiet=True)
+nltk.download('punkt', quiet=True)
+
 import pandas as pd
 import pickle
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .utils import run_search, download_nltk_dependencies
-
-download_nltk_dependencies()
+from .utils import run_search
 
 app = FastAPI()
 
