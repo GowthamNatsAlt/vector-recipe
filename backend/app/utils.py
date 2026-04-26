@@ -1,10 +1,8 @@
-# backend/src/utils.py
-import nltk
-from nltk.corpus import stopwords
-import pandas as pd
+import csv
 import re
 import math
 import ast
+from .stopwords import STOPWORDS
 
 # --- UTILITY FUNCTIONS ---
 
@@ -19,14 +17,13 @@ def clean_data(text: str) -> str:
         'frozen', 'chilled', 'melted', 'fresh', 'dried', 'cooked', 'raw', 
         'large', 'small', 'medium', 'optional', 'divided', 'drained', 'rinsed'
     ]
-    noise_pattern = r'\b(' + '|'.join(noise_list) + r')\b'
+    noise_pattern = r'\b(' + '|'.join(noise_list + list(STOPWORDS)) + r')\b'
     text = re.sub(noise_pattern, '', text)
     text = re.sub(r'[^a-z\s]', '', text)
     return re.sub(r'\s+', ' ', text).strip()
 
 def remove_stopwords(text: str) -> str:
-    stop_words = set(stopwords.words('english'))
-    return ' '.join([word for word in text.split() if word not in stop_words])
+    return ' '.join([word for word in text.split() if word not in STOPWORDS])
 
 def calculate_term_frequency(text: str) -> dict:
     all_terms = text.split()
@@ -67,29 +64,24 @@ def get_similarity(query_vec: dict, recipe_vec: dict) -> float:
     if mag_q == 0 or mag_r == 0: return 0
     return dot_product / (mag_q * mag_r)
 
-def run_search(query_str: str, data_df: pd.DataFrame, idf_matrix: dict, k: int = 5):
+def run_search(query_str: str, data_list: list, idf_matrix: dict, k: int = 5):
     query_vec = process_query(query_str, idf_matrix)
     
-    # 1. Convert TF-IDF from string to types
-    if isinstance(data_df['tfidf'].iloc[0], str):
-        data_df['tfidf'] = data_df['tfidf'].apply(ast.literal_eval)
+    scored_results = []
+    for row in data_list:
+        # Convert string representation of dict to actual dict
+        tfidf_vec = ast.literal_eval(row['tfidf']) if isinstance(row['tfidf'], str) else row['tfidf']
+        
+        score = get_similarity(query_vec, tfidf_vec)
+        
+        if score > 0:
+            row['score'] = score
+            # Convert other string-lists to actual lists for the frontend
+            for col in ['ingredients', 'directions', 'NER']:
+                if isinstance(row.get(col), str):
+                    row[col] = ast.literal_eval(row[col])
+            scored_results.append(row)
 
-    # 2. Convert column types
-    list_columns = ['ingredients', 'directions', 'NER']
-    for col in list_columns:
-        if col in data_df.columns and isinstance(data_df[col].iloc[0], str):
-            data_df[col] = data_df[col].apply(ast.literal_eval)
-
-    # 3. Calculate similarity
-    data_df['score'] = data_df['tfidf'].apply(lambda r_vec: get_similarity(query_vec, r_vec))
-    
-    # 4. Sort and return
-    results = data_df.sort_values(by='score', ascending=False).head(k)
-    
-    return results[[
-        'title', 
-        'ingredients', 
-        'directions',
-        'NER',
-        'score'
-    ]].to_dict(orient='records')
+    # Sort by score descending
+    scored_results.sort(key=lambda x: x['score'], reverse=True)
+    return scored_results[:k]

@@ -1,7 +1,4 @@
 fastapi
 uvicorn[standard]
-pandas
-nltk
 scikit-learn
 python-multipart
-mangum
