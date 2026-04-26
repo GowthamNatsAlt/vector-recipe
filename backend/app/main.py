@@ -41,7 +41,7 @@ def get_data():
             _cached_idf = pickle.load(f)
     return _cached_df, _cached_idf
 
-@app.get("/api/search")
+@app.get("/search")
 def search(query: str, k: int = 5):
     try:
         df, idf_matrix = get_data()
